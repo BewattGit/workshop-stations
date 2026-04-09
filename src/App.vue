@@ -467,11 +467,6 @@ onUnmounted(() => {
     border-radius: 8px;
   }
 
-  .grid-header,
-  .grid-row {
-    min-width: 800px;
-  }
-
   .corner-cell,
   .col-header,
   .row-header {
@@ -499,6 +494,14 @@ onUnmounted(() => {
   grid-template-columns: 40px repeat(14, 1fr);
   background: #f3f4f6;
   border-bottom: 2px solid #e5e7eb;
+  min-width: fit-content;
+}
+
+/* 手机端确保表格宽度 */
+@media (max-width: 768px) {
+  .grid-header {
+    min-width: 800px;
+  }
 }
 
 .corner-cell {
@@ -530,10 +533,18 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: 40px repeat(14, 1fr);
   border-bottom: 1px solid #f3f4f6;
+  min-width: fit-content;
 }
 
 .grid-row:last-child {
   border-bottom: none;
+}
+
+/* 手机端确保表格宽度 */
+@media (max-width: 768px) {
+  .grid-row {
+    min-width: 800px;
+  }
 }
 
 .row-header {
@@ -553,6 +564,8 @@ onUnmounted(() => {
 .station-cell {
   aspect-ratio: 1;
   min-height: 55px;
+  height: 55px;
+  max-height: 55px;
   padding: 6px;
   cursor: pointer;
   transition: all 0.15s;
@@ -562,6 +575,7 @@ onUnmounted(() => {
   align-items: center;
   border-right: 1px solid #f3f4f6;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .station-cell:last-child {
@@ -633,6 +647,11 @@ onUnmounted(() => {
     #f3f4f6 16px
   );
   border-right: 1px solid #f3f4f6;
+  aspect-ratio: 1;
+  min-height: 55px;
+  height: 55px;
+  max-height: 55px;
+  flex-shrink: 0;
 }
 
 .station-id {
@@ -650,6 +669,7 @@ onUnmounted(() => {
 
 .data-row {
   font-size: 11px;
+  font-weight: 600;
   color: #374151;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -680,6 +700,12 @@ onUnmounted(() => {
   .row-header {
     font-size: 12px;
     padding: 6px;
+  }
+
+  .empty-cell {
+    min-height: 50px;
+    height: 50px;
+    max-height: 50px;
   }
 }
 
