@@ -1,7 +1,6 @@
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
-
-const STORAGE_KEY = 'workshop_stations_v1'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { supabase } from './supabase.js'
 
 // 状态
 const searchQuery = ref('')
@@ -95,22 +94,42 @@ const closeModal = () => {
   form.unitNo = ''
 }
 
-const saveStation = () => {
+const saveStation = async () => {
   if (form.model.trim() || form.machineNo.trim() || form.unitNo.trim()) {
-    stations.value[selectedStation.value.id].data = {
+    const stationData = {
       model: form.model.trim(),
       machineNo: form.machineNo.trim(),
       unitNo: form.unitNo.trim(),
       updatedAt: new Date().toISOString()
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stations.value))
+
+    // 更新本地状态
+    stations.value[selectedStation.value.id].data = stationData
+
+    // 保存到 Supabase
+    await supabase
+      .from('workshop_stations')
+      .upsert({
+        id: selectedStation.value.id,
+        zone: selectedStation.value.zone,
+        data: stationData
+      })
   }
   closeModal()
 }
 
-const clearStation = () => {
-  stations.value[selectedStation.value.id].data = null
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stations.value))
+const clearStation = async () => {
+  const stationId = selectedStation.value.id
+
+  // 更新本地状态
+  stations.value[stationId].data = null
+
+  // 清空 Supabase 数据
+  await supabase
+    .from('workshop_stations')
+    .update({ data: null })
+    .eq('id', stationId)
+
   closeModal()
 }
 
@@ -141,22 +160,53 @@ const doSearch = () => {
   }
 }
 
-const loadFromStorage = () => {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved)
-      Object.keys(parsed).forEach(k => {
-        if (stations.value[k]) stations.value[k] = parsed[k]
-      })
-    } catch (e) {
-      console.error('加载失败', e)
-    }
+const loadFromSupabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('workshop_stations')
+      .select('*')
+
+    if (error) throw error
+
+    // 更新本地状态
+    data.forEach(record => {
+      if (stations.value[record.id]) {
+        stations.value[record.id].data = record.data
+      }
+    })
+  } catch (e) {
+    console.error('加载数据失败', e)
   }
 }
 
-onMounted(() => {
-  loadFromStorage()
+// 订阅实时更新
+let subscription = null
+
+const subscribeToUpdates = () => {
+  subscription = supabase
+    .channel('workshop_stations_changes')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'workshop_stations'
+    }, (payload) => {
+      const record = payload.new
+      if (stations.value[record.id]) {
+        stations.value[record.id].data = record.data
+      }
+    })
+    .subscribe()
+}
+
+onMounted(async () => {
+  await loadFromSupabase()
+  subscribeToUpdates()
+})
+
+onUnmounted(() => {
+  if (subscription) {
+    supabase.removeChannel(subscription)
+  }
 })
 </script>
 
